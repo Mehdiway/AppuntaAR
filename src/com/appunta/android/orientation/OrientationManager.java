@@ -1,5 +1,5 @@
 /*
-   Copyright Sergi Martínez (@sergiandreplace)
+   Copyright Sergi Martï¿½nez (@sergiandreplace)
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import android.hardware.SensorManager;
  * This class is responsible for providing the measure of the compass (in the 3
  * axis) everytime it changes and dealing with the service
  * 
- * @author Sergi Martínez
+ * @author Sergi Martï¿½nez
  * 
  */
 public class OrientationManager implements SensorEventListener {
@@ -39,6 +39,8 @@ public class OrientationManager implements SensorEventListener {
 	private static final float CIRCLE = (float) (Math.PI * 2);
 	private static final float SMOOTH_THRESHOLD = CIRCLE / 6;
 	private static final float SMOOTH_FACTOR = SMOOTH_THRESHOLD / 5;
+	
+	static final float ALPHA = 0.1f; // if ALPHA = 1 OR 0, no filter applies.
 
 	private SensorManager sensorManager;
 	private Orientation orientation = new Orientation();
@@ -107,12 +109,14 @@ public class OrientationManager implements SensorEventListener {
 	public void onSensorChanged(SensorEvent event) {
 		switch (event.sensor.getType()) {
 		case Sensor.TYPE_ACCELEROMETER:
-			System.arraycopy(event.values, 0, mGravs, 0, 3);
+//			System.arraycopy(event.values, 0, mGravs, 0, 3);
+			mGravs = myLowPass(event.values.clone(), mGravs);
 			break;
 		case Sensor.TYPE_MAGNETIC_FIELD:
 			// sensorManagerHere let's try another way:
-			for (int i = 0; i < 3; i++)
-				mGeoMags[i] = event.values[i];
+//			for (int i = 0; i < 3; i++)
+//				mGeoMags[i] = event.values[i];
+			mGeoMags = myLowPass(event.values.clone(), mGeoMags);
 			break;
 		default:
 			return;
@@ -126,6 +130,14 @@ public class OrientationManager implements SensorEventListener {
 			onSuccess();
 		} // else
 			// onFailure();
+	}
+	
+	protected float[] myLowPass( float[] input, float[] output ) {
+	    if ( output == null ) return input;     
+	    for ( int i=0; i<input.length; i++ ) {
+	        output[i] = output[i] + ALPHA * (input[i] - output[i]);
+	    }
+	    return output;
 	}
 
 	public void setAxisMode(int axisMode) {
